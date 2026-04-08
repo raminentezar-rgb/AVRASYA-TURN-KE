@@ -6,8 +6,8 @@ urlpatterns = [
     path('student/login/', views.student_login, name='student_login'),
     path('student/qr/', views.student_qr, name='student_qr'),
     path('student/api/live-token/', views.get_live_token, name='get_live_token'),
-    path('admin/import-excel/', views.import_from_excel, name='import_from_excel'),
-    path('admin/latest-logs/', views.get_latest_logs, name='get_latest_logs'),
+    path('excel-import/', views.import_from_excel, name='import_from_excel'),
+    path('latest-logs/', views.get_latest_logs, name='get_latest_logs'),
     path('system-guide/', views.system_guide, name='system_guide'),
     path('api/validate/', views.api_validate, name='api_validate'),
 ]
