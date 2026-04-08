@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .guide-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .lang-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 2rem;
+        background: rgba(0,0,0,0.05);
+        padding: 5px;
+        border-radius: 12px;
+        width: fit-content;
+    }
+    .lang-tab {
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .lang-tab.active {
+        background: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        color: var(--secondary);
+    }
+    .code-block {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 15px;
+        font-family: 'Courier New', Courier, monospace;
+        margin: 1.5rem 0;
+        overflow-x: auto;
+        position: relative;
+    }
+    .code-block::before {
+        content: 'JSON';
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: var(--secondary);
+        color: white;
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 0 15px 0 15px;
+    }
+    .guide-section {
+        display: none;
+    }
+    .guide-section.active {
+        display: block;
+    }
+    h2 { margin-top: 2rem; color: var(--primary); }
+    ul { padding-left: 1.5rem; }
+    li { margin-bottom: 0.5rem; }
+    .badge {
+        background: var(--accent);
+        color: white;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="guide-container animate-fade">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>Sistem Entegrasyon Rehberi</h1>
+        <div class="lang-tabs">
+            <div class="lang-tab active" onclick="switchLang('tr')">Türkçe</div>
+            <div class="lang-tab" onclick="switchLang('fa')">فارسی</div>
+        </div>
+    </div>
+
+    <!-- Turkish Version -->
+    <div id="guide-tr" class="guide-section active glass-card">
+        <h2>1. Gerekli Donanımlar</h2>
+        <ul>
+            <li><strong>Kontrol Kartı:</strong> ESP32 veya HTTP isteği destekleyen röle modülü.</li>
+            <li><strong>Tarayıcı:</strong> 2D (Karekod) Barkod Okuyucu.</li>
+            <li><strong>Bağlantı:</strong> Internet erişimi (Wi-Fi veya LAN).</li>
+        </ul>
+
+        <h2>2. API Protokolü</h2>
+        <p>Donanım cihazı, doğrulama için aşağıdaki uç noktaya POST isteği göndermelidir:</p>
+        <div class="code-block">
+            POST /api/validate/
+        </div>
+        
+        <h3>Header Bilgileri:</h3>
+        <ul>
+            <li><span class="badge">X-API-KEY</span> : .env dosyasındaki <code>TURNSTILE_API_KEY</code> değerini kullanın.</li>
+            <li><span class="badge">Content-Type</span> : <code>application/json</code></li>
+        </ul>
+
+        <h3>Gönderilecek Veri (JSON):</h3>
+        <div class="code-block">
+{
+    "qr_content": "ÖĞRENCİ_NO:TOKEN"
+}
+        </div>
+
+        <h2>3. Donanım Bağlantısı (Perkotek S150)</h2>
+        <p>Turnike ana kartı üzerindeki <strong>Dry Contact</strong> girişlerini kullanın:</p>
+        <ul>
+            <li>Kontrol kartı rölesinin COM ucunu turnike GND ucuna bağlayın.</li>
+            <li>Rölenin NO (Normally Open) ucunu turnike OPEN ucuna bağlayın.</li>
+        </ul>
+
+        <h2>4. Çalışma Mantığı</h2>
+        <ol>
+            <li>Okuyucu karekodu tarar.</li>
+            <li>Kontrolör, okunan metni sunucuya iletir.</li>
+            <li>Sunucu doğrularsa (Success 200), <code>status: allowed</code> yanıtını döndürür.</li>
+            <li>Kontrolör röleyi tetikler ve turnike geçişe izin verir.</li>
+        </ol>
+    </div>
+
+    <!-- Persian Version -->
+    <div id="guide-fa" class="guide-section glass-card" dir="rtl">
+        <h2>۱. تجهیزات مورد نیاز</h2>
+        <ul>
+            <li><strong>برد کنترلر:</strong> ESP32 یا ماژول‌های رله تحت شبکه.</li>
+            <li><strong>اسکنر:</strong> ماژول بارکد اسکنر دو بعدی (QR Reader).</li>
+            <li><strong>اتصال:</strong> دسترسی به اینترنت (Wi-Fi یا کابل LAN).</li>
+        </ul>
+
+        <h2>۲. پروتکل ارتباطی (API)</h2>
+        <p>سخت‌افزار باید درخواست خود را به نقطه اتصال زیر ارسال کند:</p>
+        <div class="code-block" dir="ltr">
+            POST /api/validate/
+        </div>
+        
+        <h3>هدرهای مورد نیاز:</h3>
+        <ul>
+            <li><span class="badge">X-API-KEY</span> : از مقدار <code>TURNSTILE_API_KEY</code> در فایل .env استفاده کنید.</li>
+            <li><span class="badge">Content-Type</span> : مقدار <code>application/json</code></li>
+        </ul>
+
+        <h3>ساختار داده ارسالی (JSON):</h3>
+        <div class="code-block" dir="ltr">
+{
+    "qr_content": "STUDENT_NO:TOKEN"
+}
+        </div>
+
+        <h2>۳. سیم‌کشی سخت‌افزار (Perkotek S150)</h2>
+        <p>از ورودی‌های <strong>Dry Contact</strong> روی برد اصلی گیت استفاده کنید:</p>
+        <ul>
+            <li>پایه COM رله را به پایه GND گیت متصل کنید.</li>
+            <li>پایه NO رله را به پایه OPEN گیت متصل کنید.</li>
+        </ul>
+
+        <h2>۴. منطق عملکرد</h2>
+        <ol>
+            <li>اسکنر کد QR را می‌خواند.</li>
+            <li>کنترلر رشته دریافتی را به سمت سرور می‌فرستد.</li>
+            <li>سرور در صورت تایید (Success 200)، پیام <code>status: allowed</code> را برمی‌گرداند.</li>
+            <li>کنترلر رله را فعال کرده و گیت آزاد می‌شود.</li>
+        </ol>
+    </div>
+
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'dashboard' %}" class="btn" style="background: var(--primary);"><i class="fas fa-arrow-left"></i> پانل مدیریت</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchLang(lang) {
+        // Update tabs
+        document.querySelectorAll('.lang-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Update sections
+        document.querySelectorAll('.guide-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        document.getElementById('guide-' + lang).classList.add('active');
+    }
+</script>
+{% endblock %}

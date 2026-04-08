@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 450px; margin: 4rem auto;">
+    <div class="glass-card" style="text-align: center;">
+        <div style="background: rgba(59, 130, 246, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--secondary); font-size: 2rem; margin: 0 auto 1.5rem;">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <h2 style="margin-bottom: 0.5rem; font-weight: 700;">Öğrenci Girişi</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem;">Lütfen giriş yapmak için bilgilerinizi doğrulayın.</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div style="text-align: left; margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">T.C. KİMLİK NO</label>
+                <input type="text" name="tc_no" required placeholder="12345678911" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 2rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">ÖĞRENCİ NO</label>
+                <input type="text" name="student_no" required placeholder="98765432101" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+            
+            <button type="submit" class="btn" style="width: 100%;">Giriş Yap <i class="fas fa-sign-in-alt" style="margin-left: 10px;"></i></button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 500px; margin: 2rem auto;">
+    <div class="glass-card" style="text-align: center;">
+        <h2 style="margin-bottom: 0.5rem; font-weight: 700;">Giriş Kartınız</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">{{ student.first_name }} {{ student.last_name }}</p>
+        
+        <div style="background: white; padding: 20px; border-radius: 20px; display: inline-block; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div id="qrcode"></div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <div id="timer-bar-container" style="width: 100%; height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin-bottom: 10px;">
+                <div id="timer-bar" style="width: 100%; height: 100%; background: var(--secondary); transition: width 1s linear;"></div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+                YENİ KOD İÇİN KALAN SÜRE: <span id="time-text">--</span> SN
+            </div>
+        </div>
+
+        <div style="text-align: left; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; font-size: 0.9rem;">
+            <div style="margin-bottom: 0.5rem;"><strong>Bölüm:</strong> {{ student.department }}</div>
+            <div><strong>Fakülte:</strong> {{ student.faculty }}</div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <a href="{% url 'student_login' %}" style="color: var(--text-muted); text-decoration: none; font-size: 0.8rem;">
+                <i class="fas fa-sign-out-alt"></i> Farklı Kullanıcı Girişi
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    const qrContainer = document.getElementById('qrcode');
+    const timerBar = document.getElementById('timer-bar');
+    const timeText = document.getElementById('time-text');
+    
+    let qrcode = new QRCode(qrContainer, {
+        width: 256,
+        height: 256,
+        colorDark : "#0f172a",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+
+    async function refreshQRCode() {
+        try {
+            const response = await fetch('{% url "get_live_token" %}');
+            const data = await response.json();
+            
+            if (data.token) {
+                // Formatting content as student_no:token
+                const content = `${data.student_no}:${data.token}`;
+                qrcode.makeCode(content);
+                
+                updateTimer(data.expires_in);
+            }
+        } catch (error) {
+            console.error("Token fetch failed", error);
+        }
+    }
+
+    function updateTimer(seconds) {
+        let currentSeconds = seconds;
+        const totalWindow = 20;
+        
+        const tick = () => {
+            timeText.innerText = currentSeconds;
+            const percentage = (currentSeconds / totalWindow) * 100;
+            timerBar.style.width = percentage + "%";
+            
+            if (currentSeconds <= 0) {
+                refreshQRCode();
+                return;
+            }
+            
+            currentSeconds--;
+            setTimeout(tick, 1000);
+        };
+        
+        tick();
+    }
+
+    // Initial load
+    refreshQRCode();
+</script>
+{% endblock %}
