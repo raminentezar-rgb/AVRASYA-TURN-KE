@@ -75,7 +75,9 @@
     
     <div style="margin-top: 2rem; text-align: right; display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
         <a href="{% url 'system_guide' %}" class="btn" style="background: var(--primary); color: white;">Sistem Kurulum Rehberi <i class="fas fa-book"></i></a>
+        {% if request.user.teacher_profile %}
         <a href="{% url 'teacher_dashboard' %}" class="btn" style="background: #8b5cf6; color: white;">Öğretmen Paneli <i class="fas fa-chalkboard-teacher"></i></a>
+        {% endif %}
         <a href="{% url 'import_from_excel' %}" class="btn" style="background: #10b981; color: white;">Öğrenci Aktar (Excel) <i class="fas fa-user-plus"></i></a>
         <a href="{% url 'import_classes_excel' %}" class="btn" style="background: #0ea5e9; color: white;">Sınıf/Ders Aktar (Excel) <i class="fas fa-layer-group"></i></a>
         <a href="/admin/" class="btn" style="background: var(--secondary); color: white;">Admin Paneli <i class="fas fa-lock"></i></a>
