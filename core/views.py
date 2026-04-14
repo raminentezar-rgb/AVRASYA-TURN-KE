@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.http import JsonResponse
 from django.contrib import messages
-from .models import Student, AccessLog
+from django.contrib.auth.decorators import login_required
+from .models import Student, AccessLog, Teacher, CourseSection, AttendanceSession, AttendanceRecord
 import pyotp
 import json
 import logging
@@ -82,6 +83,88 @@ def import_from_excel(request):
     return redirect('dashboard')
 
 @staff_member_required
+def import_classes_excel(request):
+    """View to import Teachers, Courses, and Sections from classes.xlsx"""
+    file_path = os.path.join(settings.BASE_DIR, 'classes.xlsx')
+    
+    if not os.path.exists(file_path):
+        messages.error(request, 'Sınıf Excel dosyası (classes.xlsx) bulunamadı. Lütfen ana dizine ekleyin.')
+        return redirect('dashboard')
+
+    try:
+        from django.contrib.auth.models import User
+        df = pd.read_excel(file_path)
+        
+        teacher_count = 0
+        course_count = 0
+        section_count = 0
+        enrollment_count = 0
+        
+        for _, row in df.iterrows():
+            teacher_tc = str(row.get('Öğretmen TC', '')).strip()
+            if not teacher_tc or teacher_tc == 'nan':
+                continue
+
+            # 1. Handle Teacher
+            first_name = str(row.get('Öğretmen Adı', '')).strip()
+            last_name = str(row.get('Öğretmen Soyadı', '')).strip()
+            t_dept = str(row.get('Öğretmen Bölüm', '')).strip()
+            
+            user, created = User.objects.get_or_create(
+                username=teacher_tc,
+                defaults={'first_name': first_name, 'last_name': last_name}
+            )
+            if created:
+                user.set_password(teacher_tc) # default password is TC
+                user.save()
+                
+            teacher, t_created = Teacher.objects.get_or_create(
+                user=user,
+                defaults={'department': t_dept}
+            )
+            if t_created: teacher_count += 1
+            
+            # 2. Handle Course
+            course_code = str(row.get('Ders Kodu', '')).strip()
+            course_name = str(row.get('Ders Adı', '')).strip()
+            c_dept = str(row.get('Ders Bölüm', '')).strip()
+            
+            course, c_created = Course.objects.get_or_create(
+                code=course_code,
+                defaults={'name': course_name, 'department': c_dept}
+            )
+            if c_created: course_count += 1
+            
+            # 3. Handle Section
+            section_name = str(row.get('Şube', '')).strip()
+            section, s_created = CourseSection.objects.get_or_create(
+                course=course,
+                teacher=teacher,
+                name=section_name
+            )
+            if s_created: section_count += 1
+            
+            # 4. Handle Enrollment
+            student_no = str(row.get('Öğrenci No', '')).strip()
+            if student_no and student_no != 'nan':
+                try:
+                    student = Student.objects.get(student_no=student_no)
+                    if student not in section.students.all():
+                        section.students.add(student)
+                        enrollment_count += 1
+                except Student.DoesNotExist:
+                    pass # Student must exist first from the other excel
+                    
+        messages.success(request, f'Başarıyla {teacher_count} öğretmen, {course_count} ders, {section_count} şube ve {enrollment_count} kayıt eklendi.')
+        
+    except Exception as e:
+        messages.error(request, f'Sınıf aktarımı sırasında hata: {str(e)}')
+        logger.exception("Class Excel import failed")
+        
+    return redirect('dashboard')
+
+
+@staff_member_required
 def get_latest_logs(request):
     """Endpoint for the dashboard to fetch recent allowed entries."""
     # Get logs from the last 2 minutes
@@ -115,6 +198,11 @@ def student_login(request):
         try:
             student = Student.objects.get(tc_no=tc, student_no=student_no)
             request.session['student_id'] = student.id
+            
+            next_url = request.session.pop('next_attendance', None)
+            if next_url:
+                return redirect(next_url)
+                
             return redirect('student_qr')
         except Student.DoesNotExist:
             messages.error(request, "Geçersiz kimlik bilgileri.")
@@ -194,3 +282,98 @@ def api_validate(request):
     except Exception as e:
         logger.exception("Unexpected error during API validation")
         return JsonResponse({'status': 'denied', 'message': str(e)}, status=500)
+
+# --- CLASSROOM ATTENDANCE SYSTEM VIEWS ---
+
+@login_required
+def teacher_dashboard(request):
+    try:
+        teacher = request.user.teacher_profile
+    except Teacher.DoesNotExist:
+        messages.error(request, "Öğretmen profili bulunamadı. Lütfen yöneticiye başvurun.")
+        return redirect('dashboard')
+        
+    sections = teacher.sections.all()
+    context = {'teacher': teacher, 'sections': sections}
+    return render(request, 'core/teacher_dashboard.html', context)
+
+@login_required
+def start_attendance_session(request, section_id):
+    section = get_object_or_404(CourseSection, id=section_id, teacher__user=request.user)
+    
+    # Optional: Close previous loose active sessions for this section
+    AttendanceSession.objects.filter(section=section, is_active=True).update(is_active=False)
+    
+    session = AttendanceSession.objects.create(section=section)
+    return redirect('projector_view', session_id=session.id)
+
+@login_required
+def projector_view(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    
+    # We will pass the initial token, but it will be refreshed via AJAX
+    context = {'session': session}
+    return render(request, 'core/projector_view.html', context)
+
+@login_required
+def api_projector_token(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    if not session.is_active:
+        return JsonResponse({'error': 'Session inactive'}, status=400)
+    
+    return JsonResponse({
+        'token': session.get_totp_token()
+    })
+
+@login_required
+def api_projector_live(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    records = session.records.all().order_by('-timestamp')
+    data = []
+    for r in records:
+        data.append({
+            'student_name': f"{r.student.first_name} {r.student.last_name}",
+            'student_no': r.student.student_no,
+            'time': r.timestamp.strftime('%H:%M:%S')
+        })
+    return JsonResponse({'records': data, 'count': records.count()})
+
+def student_scan(request):
+    # This URL is hit when student scans QR. e.g. /attendance/scan/?session=12&token=123456
+    session_id = request.GET.get('session')
+    token = request.GET.get('token')
+    
+    if not session_id or not token:
+        messages.error(request, 'Geçersiz bağlantı.')
+        return render(request, 'core/scan_result.html', {'success': False})
+        
+    student_id = request.session.get('student_id')
+    if not student_id:
+        # Save next redirect
+        request.session['next_attendance'] = request.get_full_path()
+        return redirect('student_login')
+        
+    student = get_object_or_404(Student, id=student_id)
+    session = get_object_or_404(AttendanceSession, id=session_id)
+    
+    # Checks
+    if not session.is_active:
+        messages.warning(request, 'Bu yoklama oturumu sona ermiş.')
+        return render(request, 'core/scan_result.html', {'success': False})
+        
+    if student not in session.section.students.all():
+        messages.error(request, 'Bu derse kayıtlı değilsiniz.')
+        return render(request, 'core/scan_result.html', {'success': False})
+        
+    if not session.verify_totp(token):
+        messages.error(request, 'QR kodun süresi dolmuş. Lütfen tahtadaki yeni kodu okutun.')
+        return render(request, 'core/scan_result.html', {'success': False})
+        
+    # Record Checkin
+    record, created = AttendanceRecord.objects.get_or_create(session=session, student=student)
+    if not created:
+        messages.info(request, 'Yoklamanız zaten alınmıştı.')
+    else:
+        messages.success(request, 'Başarıyla yoklamanız alındı.')
+        
+    return render(request, 'core/scan_result.html', {'success': True, 'record': record})

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sınıf Yoklama Ekranı</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code generation library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-qr-area {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .side-panel {
+            flex: 1;
+            background-color: #1e293b;
+            border-left: 2px solid #334155;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 2rem;
+            border-bottom: 2px solid #334155;
+            background-color: #0f172a;
+        }
+
+        .header h2 {
+            margin: 0;
+            color: #3b82f6;
+            font-size: 1.8rem;
+        }
+
+        .header p {
+            margin: 0.5rem 0 0 0;
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .students-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .student-item {
+            background: #334155;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .student-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .student-time {
+            color: #10b981;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .qr-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        .qr-placeholder {
+            width: 350px;
+            height: 350px;
+        }
+
+        #qrCode img {
+            width: 350px !important;
+            height: 350px !important;
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            margin-top: 2rem;
+            overflow: hidden;
+            width: 350px;
+        }
+
+        .timer-progress {
+            height: 100%;
+            background: #3b82f6;
+            width: 100%;
+            transition: width linear 1s;
+        }
+
+        .status-text {
+            margin-top: 1.5rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+        }
+
+        .btn-exit {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-exit:hover {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-qr-area">
+        <a href="{% url 'teacher_dashboard' %}" class="btn-exit"><i class="fas fa-arrow-left"></i> Bitir & Çık</a>
+        
+        <h1 style="margin-bottom: 2rem; font-size: 2.5rem; text-align: center;">Kameranızı Okutarak <br><span style="color:#3b82f6;">Yoklamaya Katılın</span></h1>
+        
+        <div class="qr-container" id="qrContainer">
+            <div id="qrCode" class="qr-placeholder"></div>
+        </div>
+
+        <div class="timer-bar">
+            <div class="timer-progress" id="timerProgress"></div>
+        </div>
+        <div class="status-text">Barkod <span id="timeRemaining">15</span> saniye içinde yenilenecek...</div>
+    </div>
+
+    <div class="side-panel">
+        <div class="header">
+            <h2>{{ session.section.course.name }}</h2>
+            <p>{{ session.section.name }} | Katılanlar: <span id="studentCount" style="color: white; font-weight: bold;">0</span></p>
+        </div>
+        <div class="students-list" id="studentsList">
+            <!-- Student items will be injected here via AJAX -->
+            <div style="text-align: center; color: #64748b; margin-top: 2rem;" id="emptyState">
+                <i class="fas fa-user-clock" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>Henüz kimse katılmadı</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = {{ session.id }};
+        const tokenUrl = `/teacher/api/projector/${sessionId}/token/`;
+        const liveDataUrl = `/teacher/api/projector/${sessionId}/live/`;
+        const scanBaseUrl = window.location.origin + `/attendance/scan/?session=${sessionId}&token=`;
+        
+        let qrcode = new QRCode(document.getElementById("qrCode"), {
+            width: 350,
+            height: 350,
+            colorDark : "#0f172a",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        const REFRESH_INTERVAL = 15; // seconds
+        let secondsRemaining = REFRESH_INTERVAL;
+
+        function refreshToken() {
+            fetch(tokenUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.token) {
+                        qrcode.clear();
+                        qrcode.makeCode(scanBaseUrl + data.token);
+                        secondsRemaining = REFRESH_INTERVAL;
+                        updateTimerUI();
+                    }
+                })
+                .catch(err => console.error("Error fetching token:", err));
+        }
+
+        function updateTimerUI() {
+            document.getElementById('timeRemaining').innerText = secondsRemaining;
+            const progress = (secondsRemaining / REFRESH_INTERVAL) * 100;
+            document.getElementById('timerProgress').style.width = progress + '%';
+        }
+
+        function countTimer() {
+            secondsRemaining--;
+            updateTimerUI();
+            if(secondsRemaining <= 0) {
+                refreshToken();
+            }
+        }
+
+        function fetchLiveAttendance() {
+            fetch(liveDataUrl)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('studentCount').innerText = data.count;
+                    const listContainer = document.getElementById('studentsList');
+                    
+                    if (data.count > 0) {
+                        document.getElementById('emptyState').style.display = 'none';
+                        // Rebuild list (for simplicity in production, you might diff this via React/Vue, but vanilla JS is fine here)
+                        listContainer.innerHTML = '';
+                        data.records.forEach(record => {
+                            listContainer.innerHTML += `
+                                <div class="student-item">
+                                    <div>
+                                        <div class="student-name">${record.student_name}</div>
+                                        <div style="color: #94a3b8; font-size: 0.8rem;">${record.student_no}</div>
+                                    </div>
+                                    <div class="student-time"><i class="fas fa-check-circle"></i> ${record.time}</div>
+                                </div>
+                            `;
+                        });
+                    }
+                });
+        }
+
+        // Initial load
+        refreshToken();
+        fetchLiveAttendance();
+
+        // Intervals
+        setInterval(countTimer, 1000);
+        setInterval(fetchLiveAttendance, 3000); // Poll list every 3s
+    </script>
+</body>
+</html>
