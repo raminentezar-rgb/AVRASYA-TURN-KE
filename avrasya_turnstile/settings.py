@@ -160,3 +160,5 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 LANGUAGE_CODE = 'tr'
 TIME_ZONE = 'Europe/Istanbul'
+
+LOGIN_URL = 'teacher_login'
