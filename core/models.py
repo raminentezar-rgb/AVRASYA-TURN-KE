@@ -53,7 +53,8 @@ class Teacher(models.Model):
         verbose_name_plural = "Öğretmenler"
         
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name}"
+        full_name = f"{self.user.first_name} {self.user.last_name}".strip()
+        return full_name if full_name else self.user.username
 
 class Course(models.Model):
     name = models.CharField(max_length=255, verbose_name="Ders Adı")
