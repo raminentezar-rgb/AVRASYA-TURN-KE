@@ -16,7 +16,7 @@ urlpatterns = [
     
     # Class Attendance System URLs
     path('teacher/login/', auth_views.LoginView.as_view(template_name='core/teacher_login.html', redirect_authenticated_user=True), name='teacher_login'),
-    path('teacher/logout/', auth_views.LogoutView.as_view(next_page='dashboard'), name='teacher_logout'),
+    path('teacher/logout/', auth_views.LogoutView.as_view(next_page='teacher_login'), name='teacher_logout'),
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('teacher/session/<int:section_id>/start/', views.start_attendance_session, name='start_attendance_session'),
     path('teacher/projector/<int:session_id>/', views.projector_view, name='projector_view'),
