@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('student/login/', views.student_login, name='student_login'),
+    path('student/logout/', views.student_logout, name='student_logout'),
     path('student/qr/', views.student_qr, name='student_qr'),
     path('student/api/live-token/', views.get_live_token, name='get_live_token'),
     path('excel-import/', views.import_from_excel, name='import_from_excel'),

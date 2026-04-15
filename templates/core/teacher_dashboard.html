@@ -3,8 +3,18 @@
 
 {% block content %}
 <div class="glass-card animate-fade" style="margin-top: 2rem;">
-    <h2 style="color: var(--primary);"><i class="fas fa-chalkboard-teacher"></i> Öğretmen Paneli</h2>
-    <p>Hoş geldiniz, <strong>{{ teacher.user.get_full_name }}</strong>. Lütfen yoklama almak istediğiniz şubeyi seçin.</p>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem;">
+        <div>
+            <h2 style="color: var(--primary); margin: 0;"><i class="fas fa-chalkboard-teacher"></i> Öğretmen Paneli</h2>
+            <p style="margin: 0.5rem 0 0;">Hoş geldiniz, <strong>{{ teacher.user.get_full_name }}</strong>. Lütfen yoklama almak istediğiniz şubeyi seçin.</p>
+        </div>
+        <form method="POST" action="{% url 'teacher_logout' %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1.5px solid rgba(239,68,68,0.3); padding: 0.5rem 1.2rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white';" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444';">
+                <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+            </button>
+        </form>
+    </div>
     
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
         {% for section in sections %}

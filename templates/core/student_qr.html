@@ -24,10 +24,13 @@
             <div><strong>Fakülte:</strong> {{ student.faculty }}</div>
         </div>
         
-        <div style="margin-top: 2rem;">
-            <a href="{% url 'student_login' %}" style="color: var(--text-muted); text-decoration: none; font-size: 0.8rem;">
-                <i class="fas fa-sign-out-alt"></i> Farklı Kullanıcı Girişi
-            </a>
+        <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <form method="POST" action="{% url 'student_logout' %}">
+                {% csrf_token %}
+                <button type="submit" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1.5px solid rgba(239,68,68,0.3); padding: 0.6rem 1.5rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white';" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.color='#ef4444';">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                </button>
+            </form>
         </div>
     </div>
 </div>

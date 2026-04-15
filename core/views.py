@@ -209,6 +209,12 @@ def student_login(request):
     
     return render(request, 'core/student_login.html')
 
+def student_logout(request):
+    """Clears the student session and redirects to the student login page."""
+    if request.method == 'POST':
+        request.session.flush()
+    return redirect('student_login')
+
 def student_qr(request):
     student_id = request.session.get('student_id')
     if not student_id:
