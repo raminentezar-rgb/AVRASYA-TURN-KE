@@ -12,6 +12,15 @@ import pandas as pd
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import openpyxl
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -383,3 +392,103 @@ def student_scan(request):
         messages.success(request, 'Başarıyla yoklamanız alındı.')
         
     return render(request, 'core/scan_result.html', {'success': True, 'record': record})
+
+@login_required
+def close_attendance_session(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    session.is_active = False
+    session.save()
+    
+    present_ids = session.records.values_list('student_id', flat=True)
+    enrolled = session.section.students.all()
+    absent_count = enrolled.count() - len(present_ids)
+    
+    context = {
+        'session': session,
+        'present_count': len(present_ids),
+        'absent_count': absent_count,
+        'total_count': enrolled.count(),
+    }
+    return render(request, 'core/attendance_summary.html', context)
+
+@login_required
+def export_attendance_report(request, session_id, export_format='excel'):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    enrolled_students = session.section.students.all().order_by('first_name')
+    present_student_ids = set(session.records.values_list('student_id', flat=True))
+    
+    data = []
+    for s in enrolled_students:
+        is_present = s.id in present_student_ids
+        record = session.records.filter(student=s).first() if is_present else None
+        data.append({
+            'Öğrenci No': s.student_no,
+            'Ad Soyad': f"{s.first_name} {s.last_name}",
+            'Bölüm': s.department,
+            'Durum': 'PRESENT' if is_present else 'ABSENT',
+            'Giriş Saati': record.timestamp.strftime('%H:%M:%S') if record else '-'
+        })
+    
+    filename = f"Yoklama_{session.section.course.code}_{session.created_at.strftime('%Y-%m-%d')}"
+    
+    if export_format == 'excel':
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Yoklama')
+            # Basic formatting
+            worksheet = writer.sheets['Yoklama']
+            for i, col in enumerate(df.columns):
+                column_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
+                worksheet.column_dimensions[openpyxl.utils.get_column_letter(i+1)].width = column_len
+
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+        return response
+    
+    elif export_format == 'pdf':
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Title and Header Info
+        elements.append(Paragraph(f"<b>{session.section.course.name} ({session.section.course.code})</b>", styles['Title']))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph(f"<b>Şube:</b> {session.section.name}", styles['Normal']))
+        elements.append(Paragraph(f"<b>Tarih:</b> {session.created_at.strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
+        elements.append(Paragraph(f"<b>Öğretmen:</b> {session.section.teacher.user.get_full_name()}", styles['Normal']))
+        elements.append(Spacer(1, 24))
+        
+        # Table Data
+        table_data = [['NO', 'STUDENT NO', 'NAME', 'DEPARTMENT', 'STATUS', 'TIME']]
+        for i, row in enumerate(data, 1):
+            table_data.append([
+                i, 
+                row['Öğrenci No'], 
+                row['Ad Soyad'], 
+                row['Bölüm'], 
+                row['Durum'], 
+                row['Giriş Saati']
+            ])
+            
+        t = Table(table_data, colWidths=[30, 80, 150, 120, 70, 60])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            # Highlight absent
+            *([('TEXTCOLOR', (4, i), (4, i), colors.red) for i, row in enumerate(data, 1) if row['Durum'] == 'ABSENT'])
+        ]))
+        elements.append(t)
+        
+        doc.build(elements)
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
+        return response
+
+    return HttpResponse("Invalid format", status=400)

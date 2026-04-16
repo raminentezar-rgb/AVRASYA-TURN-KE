@@ -22,5 +22,7 @@ urlpatterns = [
     path('teacher/projector/<int:session_id>/', views.projector_view, name='projector_view'),
     path('teacher/api/projector/<int:session_id>/token/', views.api_projector_token, name='api_projector_token'),
     path('teacher/api/projector/<int:session_id>/live/', views.api_projector_live, name='api_projector_live'),
+    path('teacher/session/<int:session_id>/close/', views.close_attendance_session, name='close_attendance_session'),
+    path('teacher/session/<int:session_id>/export/<str:export_format>/', views.export_attendance_report, name='export_attendance_report'),
     path('attendance/scan/', views.student_scan, name='student_scan'),
 ]

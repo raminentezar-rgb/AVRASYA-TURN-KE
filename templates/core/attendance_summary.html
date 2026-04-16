@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 600px; margin: 3rem auto;">
+    <div class="glass-card" style="text-align: center; border-top: 5px solid var(--secondary);">
+        <div style="background: rgba(16, 185, 129, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 2.5rem; margin: 0 auto 1.5rem;">
+            <i class="fas fa-check-double"></i>
+        </div>
+        
+        <h2 style="margin-bottom: 0.5rem;">Yoklama Tamamlandı</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">{{ session.section.course.name }} - {{ session.section.name }}</p>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2.5rem;">
+            <div style="background: rgba(59, 130, 246, 0.05); padding: 1rem; border-radius: 12px;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ total_count }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Toplam Kayıtlı</div>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.05); padding: 1rem; border-radius: 12px;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">{{ present_count }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Katılan</div>
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.05); padding: 1rem; border-radius: 12px;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">{{ absent_count }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Katılmayan</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <a href="{% url 'export_attendance_report' session.id 'excel' %}" class="btn" style="background: #10b981; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fas fa-file-excel"></i> Excel Olarak İndir (.xlsx)
+            </a>
+            <a href="{% url 'export_attendance_report' session.id 'pdf' %}" class="btn" style="background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fas fa-file-pdf"></i> PDF Olarak İndir (.pdf)
+            </a>
+            <a href="{% url 'teacher_dashboard' %}" class="btn" style="background: var(--primary); color: white; margin-top: 1rem;">
+                <i class="fas fa-home"></i> Panele Dön
+            </a>
+        </div>
+    </div>
+    
+    <div style="margin-top: 2rem; text-align: center;">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            <i class="fas fa-info-circle"></i> Raporlar ders kodu, tarih و saat bilgilerini içerir.
+        </p>
+    </div>
+</div>
+{% endblock %}
