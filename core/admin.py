@@ -4,8 +4,8 @@ from .models import Student, AccessLog, Teacher, Course, CourseSection, Attendan
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('student_no', 'first_name', 'last_name', 'department')
-    search_fields = ('student_no', 'first_name', 'last_name', 'tc_no')
+    list_display = ('student_no', 'first_name', 'last_name', 'department', 'phone_number', 'parent_phone')
+    search_fields = ('student_no', 'first_name', 'last_name', 'tc_no', 'phone_number', 'parent_phone')
 
 @admin.register(AccessLog)
 class AccessLogAdmin(admin.ModelAdmin):
