@@ -532,6 +532,8 @@ def export_attendance_report(request, session_id, export_format='excel'):
         ]))
         elements.append(t)
         
+        doc.build(elements)
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
         return response
     
@@ -583,5 +585,3 @@ def teacher_stats(request):
         'chart_data': json.dumps(chart_data),
     }
     return render(request, 'core/teacher_stats.html', context)
-
-    return HttpResponse("Invalid format", status=400)
