@@ -198,6 +198,37 @@ def get_latest_logs(request):
     return JsonResponse({'logs': data})
 
 @staff_member_required
+def download_student_template(request):
+    """Generates an empty Excel template for student imports."""
+    cols = ['T.C.Kimlik No_1', 'Öğrenci No_1', 'Adı_1', 'Soyadı_1', 'Fakülte_1', 'Bölüm_1']
+    df = pd.DataFrame(columns=cols)
+    
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+        
+    response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="ogrenci_sablonu.xlsx"'
+    return response
+
+@staff_member_required
+def download_class_template(request):
+    """Generates an empty Excel template for class/teacher/enrollment imports."""
+    cols = [
+        'Öğretmen TC', 'Öğretmen Adı', 'Öğretmen Soyadı', 'Öğretmen Bölüm',
+        'Ders Kodu', 'Ders Adı', 'Ders Bölüm', 'Şube', 'Öğrenci No'
+    ]
+    df = pd.DataFrame(columns=cols)
+    
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+        
+    response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="sinif_sablonu.xlsx"'
+    return response
+
+@staff_member_required
 def system_guide(request):
     """View to display the technical hardware integration guide."""
     return render(request, 'core/system_guide.html')

@@ -12,6 +12,8 @@ urlpatterns = [
     path('import-classes/', views.import_classes_excel, name='import_classes_excel'),
     path('latest-logs/', views.get_latest_logs, name='get_latest_logs'),
     path('system-guide/', views.system_guide, name='system_guide'),
+    path('download-student-template/', views.download_student_template, name='download_student_template'),
+    path('download-class-template/', views.download_class_template, name='download_class_template'),
     path('api/validate/', views.api_validate, name='api_validate'),
     
     # Class Attendance System URLs
