@@ -21,12 +21,12 @@
     
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
         {% for section in sections %}
-        <div style="background: white; border-radius: 15px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--secondary);">
-            <h3 style="margin-top: 0; color: var(--primary);">{{ section.course.name }}</h3>
+        <div style="background: white; border-radius: 15px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--secondary); display: flex; flex-direction: column; min-width: 0;">
+            <h3 style="margin-top: 0; color: var(--primary); font-size: 1.25rem; word-wrap: break-word;">{{ section.course.name }}</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;"><i class="fas fa-barcode"></i> Kodu: {{ section.course.code }}</p>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;"><i class="fas fa-users"></i> Şube: {{ section.name }} | Kayıtlı Öğrenci: {{ section.students.count }}</p>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;"><i class="fas fa-users"></i> Şube: {{ section.name }} | Kayıtlı: {{ section.students.count }}</p>
             
-            <a href="{% url 'start_attendance_session' section.id %}" class="btn" style="width: 100%;"><i class="fas fa-qrcode"></i> Yoklamayı Başlat</a>
+            <a href="{% url 'start_attendance_session' section.id %}" class="btn" style="margin-top: auto; width: 100%; display: block; text-align: center;"><i class="fas fa-qrcode"></i> Yoklamayı Başlat</a>
         </div>
         {% empty %}
         <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 2rem;">
