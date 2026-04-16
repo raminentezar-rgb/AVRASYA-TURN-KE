@@ -351,7 +351,7 @@ def api_projector_live(request, session_id):
         data.append({
             'student_name': f"{r.student.first_name} {r.student.last_name}",
             'student_no': r.student.student_no,
-            'time': r.timestamp.strftime('%H:%M:%S')
+            'time': timezone.localtime(r.timestamp).strftime('%H:%M:%S')
         })
     return JsonResponse({'records': data, 'count': records.count()})
 
