@@ -441,7 +441,7 @@ def export_attendance_report(request, session_id, export_format='excel'):
             'Ad Soyad': f"{s.first_name} {s.last_name}",
             'Bölüm': s.department,
             'Durum': 'PRESENT' if is_present else 'ABSENT',
-            'Giriş Saati': record.timestamp.strftime('%H:%M:%S') if record else '-'
+            'Giriş Saati': timezone.localtime(record.timestamp).strftime('%H:%M:%S') if record else '-'
         })
     
     # Translate status for display
@@ -501,7 +501,7 @@ def export_attendance_report(request, session_id, export_format='excel'):
         elements.append(Spacer(1, 12))
         
         elements.append(Paragraph(f"<b>Şube:</b> {session.section.name}", normal_style))
-        elements.append(Paragraph(f"<b>Tarih:</b> {session.created_at.strftime('%Y-%m-%d %H:%M')}", normal_style))
+        elements.append(Paragraph(f"<b>Tarih:</b> {timezone.localtime(session.created_at).strftime('%Y-%m-%d %H:%M')}", normal_style))
         elements.append(Paragraph(f"<b>Öğretmen:</b> {session.section.teacher.user.get_full_name()}", normal_style))
         elements.append(Spacer(1, 24))
         
