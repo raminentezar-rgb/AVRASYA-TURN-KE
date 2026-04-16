@@ -442,6 +442,10 @@ def export_attendance_report(request, session_id, export_format='excel'):
             'Giriş Saati': record.timestamp.strftime('%H:%M:%S') if record else '-'
         })
     
+    # Translate status for display
+    for item in data:
+        item['Durum'] = 'VAR' if item['Durum'] == 'PRESENT' else 'YOK'
+    
     filename = f"Yoklama_{session.section.course.code}_{session.created_at.strftime('%Y-%m-%d')}"
     
     if export_format == 'excel':
@@ -500,7 +504,7 @@ def export_attendance_report(request, session_id, export_format='excel'):
         elements.append(Spacer(1, 24))
         
         # Table Data
-        table_data = [['NO', 'STUDENT NO', 'NAME', 'DEPARTMENT', 'STATUS', 'TIME']]
+        table_data = [['NO', 'ÖĞRENCİ NO', 'AD SOYAD', 'BÖLÜM', 'DURUM', 'GİRİŞ SAATİ']]
         for i, row in enumerate(data, 1):
             table_data.append([
                 i, 
@@ -522,7 +526,7 @@ def export_attendance_report(request, session_id, export_format='excel'):
             ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             # Highlight absent
-            *([('TEXTCOLOR', (4, i), (4, i), colors.red) for i, row in enumerate(data, 1) if row['Durum'] == 'ABSENT'])
+            *([('TEXTCOLOR', (4, i), (4, i), colors.red) for i, row in enumerate(data, 1) if row['Durum'] == 'YOK'])
         ]))
         elements.append(t)
         
