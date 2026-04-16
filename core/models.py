@@ -14,6 +14,10 @@ class Student(models.Model):
     # Secret key for TOTP generation
     secret_key = models.CharField(max_length=32, default=pyotp.random_base32, verbose_name="TOTP Secret")
     
+    # Contact details for SMS notifications
+    phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Öğrenci Telefon")
+    parent_phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="Veli Telefon")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -24,5 +24,7 @@ urlpatterns = [
     path('teacher/api/projector/<int:session_id>/live/', views.api_projector_live, name='api_projector_live'),
     path('teacher/session/<int:session_id>/close/', views.close_attendance_session, name='close_attendance_session'),
     path('teacher/session/<int:session_id>/export/<str:export_format>/', views.export_attendance_report, name='export_attendance_report'),
+    path('teacher/session/<int:session_id>/notify-parents/', views.notify_absent_parents, name='notify_absent_parents'),
+    path('teacher/statistics/', views.teacher_stats, name='teacher_stats'),
     path('attendance/scan/', views.student_scan, name='student_scan'),
 ]

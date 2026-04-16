@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 1000px; margin: 2rem auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1><i class="fas fa-chart-line"></i> Katılım İstatistikleri</h1>
+        <a href="{% url 'teacher_dashboard' %}" class="btn" style="background: var(--primary); color: white;">
+            <i class="fas fa-arrow-left"></i> Geri Dön
+        </a>
+    </div>
+
+    <div class="grid-container" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+        <!-- Monthly Trend Chart -->
+        <div class="glass-card" style="grid-column: span 2;">
+            <h3>Aylık Katılım Eğilimi</h3>
+            <canvas id="attendanceChart" style="width: 100%; height: 300px;"></canvas>
+        </div>
+
+        <!-- Section List Summary -->
+        <div class="glass-card">
+            <h3>Şubeleriniz</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                {% for section in sections %}
+                <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; display: flex; justify-content: space-between;">
+                    <span>{{ section.course.code }} - {{ section.name }}</span>
+                    <span class="badge bg-primary">{{ section.students.count }} Öğrenci</span>
+                </div>
+                {% empty %}
+                <p>Henüz bir şube bulunmuyor.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    const labels = {{ chart_labels|safe }};
+    const data = {{ chart_data|safe }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Aylık Toplam Katılım Sayısı',
+                data: data,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#10b981',
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#94a3b8',
+                        font: { size: 14 }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8' }
+                },
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

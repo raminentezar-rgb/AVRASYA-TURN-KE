@@ -32,6 +32,9 @@
             <a href="{% url 'export_attendance_report' session.id 'pdf' %}" class="btn" style="background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <i class="fas fa-file-pdf"></i> PDF Olarak İndir (.pdf)
             </a>
+            <a href="{% url 'notify_absent_parents' session.id %}" class="btn" style="background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fas fa-sms"></i> Velilere SMS Gönder
+            </a>
             <a href="{% url 'teacher_dashboard' %}" class="btn" style="background: var(--primary); color: white; margin-top: 1rem;">
                 <i class="fas fa-home"></i> Panele Dön
             </a>

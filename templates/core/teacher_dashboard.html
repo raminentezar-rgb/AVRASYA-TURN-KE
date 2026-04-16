@@ -5,7 +5,10 @@
 <div class="glass-card animate-fade" style="margin-top: 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem;">
         <div>
-            <h2 style="color: var(--primary); margin: 0;"><i class="fas fa-chalkboard-teacher"></i> Öğretmen Paneli</h2>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h2 style="color: var(--primary); margin: 0;"><i class="fas fa-chalkboard-teacher"></i> Öğretmen Paneli</h2>
+                <a href="{% url 'teacher_stats' %}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: rgba(59, 130, 246, 0.1); color: var(--primary); border: 1.5px solid var(--primary);"><i class="fas fa-chart-bar"></i> İstatistikler</a>
+            </div>
             <p style="margin: 0.5rem 0 0;">Hoş geldiniz, <strong>{{ teacher.user.get_full_name }}</strong>. Lütfen yoklama almak istediğiniz şubeyi seçin.</p>
         </div>
         <form method="POST" action="{% url 'teacher_logout' %}" style="margin: 0;">

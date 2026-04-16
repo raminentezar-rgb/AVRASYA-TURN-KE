@@ -21,6 +21,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import openpyxl
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -530,9 +532,56 @@ def export_attendance_report(request, session_id, export_format='excel'):
         ]))
         elements.append(t)
         
-        doc.build(elements)
-        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
         return response
+    
+    return redirect('teacher_dashboard')
+
+@login_required
+def notify_absent_parents(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    
+    enrolled_students = session.section.students.all()
+    present_student_ids = session.records.values_list('student_id', flat=True)
+    absent_students = enrolled_students.exclude(id__in=present_student_ids)
+    
+    notified_count = 0
+    for student in absent_students:
+        if student.parent_phone:
+            # PLACEHOLDER: Integrate your SMS Gateway API here (e.g., Netgsm, MutluSMS)
+            # Example logic:
+            # send_sms(student.parent_phone, f"Sayın veli, {student.first_name} bugünkü {session.section.course.name} dersine katılmamıştır.")
+            print(f"SMS SENT to {student.parent_phone}: {student.first_name} is absent.")
+            notified_count += 1
+            
+    if notified_count > 0:
+        messages.success(request, f"{notified_count} veliye bilgilendirme SMS'i gönderildi.")
+    else:
+        messages.warning(request, "Bildirim gönderilecek veli telefonu bulunamadی.")
+        
+    return redirect('close_attendance_session', session_id=session_id)
+
+@login_required
+def teacher_stats(request):
+    teacher = get_object_or_404(Teacher, user=request.user)
+    sections = teacher.sections.all()
+    
+    # Monthly Attendance Trends
+    monthly_stats = AttendanceRecord.objects.filter(session__section__teacher=teacher)\
+        .annotate(month=TruncMonth('timestamp'))\
+        .values('month')\
+        .annotate(count=Count('id'))\
+        .order_by('month')
+        
+    # Stats for Chart.js
+    chart_labels = [s['month'].strftime('%B %Y') for s in monthly_stats]
+    chart_data = [s['count'] for s in monthly_stats]
+    
+    context = {
+        'sections': sections,
+        'chart_labels': json.dumps(chart_labels),
+        'chart_data': json.dumps(chart_data),
+    }
+    return render(request, 'core/teacher_stats.html', context)
 
     return HttpResponse("Invalid format", status=400)
