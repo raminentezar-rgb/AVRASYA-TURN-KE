@@ -393,6 +393,19 @@ def student_scan(request):
         
     return render(request, 'core/scan_result.html', {'success': True, 'record': record})
 
+def get_unicode_font():
+    """Returns a path to a font that supports Turkish characters based on the OS."""
+    possible_paths = [
+        "C:\\Windows\\Fonts\\arial.ttf", # Windows
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", # Linux (PythonAnywhere)
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf", # Linux alternative
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", # Linux alternative
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
 @login_required
 def close_attendance_session(request, session_id):
     session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
@@ -452,12 +465,28 @@ def export_attendance_report(request, session_id, export_format='excel'):
         elements = []
         styles = getSampleStyleSheet()
         
+        # Font Configuration
+        font_path = get_unicode_font()
+        font_name = 'Helvetica' # fallback
+        if font_path:
+            try:
+                pdfmetrics.registerFont(TTFont('TurkishFont', font_path))
+                font_name = 'TurkishFont'
+                # Create a custom style using the registered font
+                styles.add(ParagraphStyle(name='TurkishTitle', parent=styles['Title'], fontName='TurkishFont'))
+                styles.add(ParagraphStyle(name='TurkishNormal', parent=styles['Normal'], fontName='TurkishFont'))
+            except:
+                pass
+        
+        title_style = styles.get('TurkishTitle', styles['Title'])
+        normal_style = styles.get('TurkishNormal', styles['Normal'])
+
         # Title and Header Info
-        elements.append(Paragraph(f"<b>{session.section.course.name} ({session.section.course.code})</b>", styles['Title']))
+        elements.append(Paragraph(f"<b>{session.section.course.name} ({session.section.course.code})</b>", title_style))
         elements.append(Spacer(1, 12))
-        elements.append(Paragraph(f"<b>Şube:</b> {session.section.name}", styles['Normal']))
-        elements.append(Paragraph(f"<b>Tarih:</b> {session.created_at.strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
-        elements.append(Paragraph(f"<b>Öğretmen:</b> {session.section.teacher.user.get_full_name()}", styles['Normal']))
+        elements.append(Paragraph(f"<b>Şube:</b> {session.section.name}", normal_style))
+        elements.append(Paragraph(f"<b>Tarih:</b> {session.created_at.strftime('%Y-%m-%d %H:%M')}", normal_style))
+        elements.append(Paragraph(f"<b>Öğretmen:</b> {session.section.teacher.user.get_full_name()}", normal_style))
         elements.append(Spacer(1, 24))
         
         # Table Data
@@ -472,12 +501,13 @@ def export_attendance_report(request, session_id, export_format='excel'):
                 row['Giriş Saati']
             ])
             
-        t = Table(table_data, colWidths=[30, 80, 150, 120, 70, 60])
+        t = Table(table_data, colWidths=[30, 80, 150, 150, 70, 60])
         t.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), font_name),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
