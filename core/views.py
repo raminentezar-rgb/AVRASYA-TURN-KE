@@ -15,7 +15,7 @@ from django.utils import timezone
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
@@ -480,10 +480,20 @@ def export_attendance_report(request, session_id, export_format='excel'):
         
         title_style = styles.get('TurkishTitle', styles['Title'])
         normal_style = styles.get('TurkishNormal', styles['Normal'])
+        
+        # Add Logo
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'avrasya-logo.png')
+        if os.path.exists(logo_path):
+            img = Image(logo_path, width=80, height=80)
+            img.hAlign = 'CENTER'
+            elements.append(img)
+            elements.append(Spacer(1, 10))
 
         # Title and Header Info
         elements.append(Paragraph(f"<b>{session.section.course.name} ({session.section.course.code})</b>", title_style))
+        elements.append(Paragraph(f"Yoklama Listesi", title_style))
         elements.append(Spacer(1, 12))
+        
         elements.append(Paragraph(f"<b>Şube:</b> {session.section.name}", normal_style))
         elements.append(Paragraph(f"<b>Tarih:</b> {session.created_at.strftime('%Y-%m-%d %H:%M')}", normal_style))
         elements.append(Paragraph(f"<b>Öğretmen:</b> {session.section.teacher.user.get_full_name()}", normal_style))
