@@ -21,7 +21,8 @@
                 <input type="text" name="student_no" required placeholder="98765432101" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
             </div>
             
-            <button type="submit" class="btn" style="width: 100%;">Giriş Yap <i class="fas fa-sign-in-alt" style="margin-left: 10px;"></i></button>
+            <button type="submit" class="btn" style="width: 100%; margin-bottom: 1rem;">Giriş Yap <i class="fas fa-sign-in-alt" style="margin-left: 10px;"></i></button>
+            <p style="font-size: 0.9rem; margin-top: 1rem;">Hesabınız yok mu? <a href="{% url 'student_register' %}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Kayıt Olun</a></p>
         </form>
     </div>
 </div>

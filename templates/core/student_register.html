@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 450px; margin: 4rem auto;">
+    <div class="glass-card" style="text-align: center;">
+        <div style="background: rgba(59, 130, 246, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--secondary); font-size: 2rem; margin: 0 auto 1.5rem;">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <h2 style="margin-bottom: 0.5rem; font-weight: 700;">Öğrenci Kayıt</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem;">Sisteme kayıt olmak için bilgilerinizi girin.</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">T.C.KİMLİK NO</label>
+                <input type="text" name="tc_no" required placeholder="12345678911" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">ÖĞRENCİ NO</label>
+                <input type="text" name="student_no" required placeholder="98765432101" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">ADI</label>
+                <input type="text" name="first_name" required placeholder="Örn: Ali" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">SOYADI</label>
+                <input type="text" name="last_name" required placeholder="Örn: Yılmaz" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">FAKÜLTE / OKUL / ENSTİTÜ</label>
+                <select name="faculty" required style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit; color: var(--text);">
+                    <option value="" disabled selected>Lütfen Seçiniz</option>
+                    <optgroup label="Enstitü">
+                        <option value="Lisansüstü Eğitim Enstitüsü">Lisansüstü Eğitim Enstitüsü</option>
+                    </optgroup>
+                    <optgroup label="Fakülteler">
+                        <option value="İnsan ve Toplum Bilimleri Fakültesi">İnsan ve Toplum Bilimleri Fakültesi</option>
+                        <option value="İktisadi ve İdari Bilimler Fakültesi">İktisadi ve İdari Bilimler Fakültesi</option>
+                        <option value="Mühendislik ve Mimarlık Fakültesi">Mühendislik ve Mimarlık Fakültesi</option>
+                        <option value="Sağlık Bilimleri Fakültesi">Sağlık Bilimleri Fakültesi</option>
+                        <option value="Spor Bilimleri Fakültesi">Spor Bilimleri Fakültesi</option>
+                        <option value="İletişim Fakültesi">İletişim Fakültesi</option>
+                    </optgroup>
+                    <optgroup label="Yüksekokullar">
+                        <option value="Uygulamalı Bilimler Yüksekokulu">Uygulamalı Bilimler Yüksekokulu</option>
+                        <option value="Yabancı Diller Yüksekokulu">Yabancı Diller Yüksekokulu</option>
+                    </optgroup>
+                    <optgroup label="Meslek Yüksekokulları">
+                        <option value="Meslek Yüksekokulu">Meslek Yüksekokulu</option>
+                        <option value="Sağlık Hizmetleri Meslek Yüksekokulu">Sağlık Hizmetleri Meslek Yüksekokulu</option>
+                    </optgroup>
+                </select>
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 2rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">BÖLÜM</label>
+                <select name="department" required style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit; color: var(--text);">
+                    <option value="" disabled selected>Lütfen Seçiniz</option>
+                    
+                    <optgroup label="İletişim Fakültesi">
+                        <option value="Yeni Medya ve İletişim">Yeni Medya ve İletişim</option>
+                        <option value="Görsel İletişim Tasarımı">Görsel İletişim Tasarımı</option>
+                    </optgroup>
+                    
+                    <optgroup label="İnsan ve Toplum Bilimleri Fakültesi">
+                        <option value="İngiliz Dili ve Edebiyatı">İngiliz Dili ve Edebiyatı</option>
+                        <option value="Psikoloji">Psikoloji</option>
+                        <option value="Türk Dili ve Edebiyatı">Türk Dili ve Edebiyatı</option>
+                        <option value="Mütercim Tercümanlık">Mütercim Tercümanlık</option>
+                    </optgroup>
+                    
+                    <optgroup label="İktisadi ve İdari Bilimler Fakültesi">
+                        <option value="İşletme">İşletme</option>
+                        <option value="İşletme (İngilizce)">İşletme (İngilizce)</option>
+                        <option value="Siyaset Bilimi ve Kamu Yönetimi">Siyaset Bilimi ve Kamu Yönetimi</option>
+                        <option value="Maliye">Maliye</option>
+                        <option value="Uluslararası İlişkiler">Uluslararası İlişkiler</option>
+                    </optgroup>
+                    
+                    <optgroup label="Mühendislik ve Mimarlık Fakültesi">
+                        <option value="Bilgisayar Mühendisliği">Bilgisayar Mühendisliği</option>
+                        <option value="Elektrik Elektronik Mühendisliği">Elektrik Elektronik Mühendisliği</option>
+                        <option value="Gıda Mühendisliği">Gıda Mühendisliği</option>
+                        <option value="Harita Mühendisliği">Harita Mühendisliği</option>
+                        <option value="İç Mimarlık ve Çevre Tasarımı">İç Mimarlık ve Çevre Tasarımı</option>
+                        <option value="İnşaat Mühendisliği">İnşaat Mühendisliği</option>
+                        <option value="Makine Mühendisliği">Makine Mühendisliği</option>
+                        <option value="Mimarlık">Mimarlık</option>
+                        <option value="Moleküler Biyoloji ve Genetik">Moleküler Biyoloji ve Genetik</option>
+                    </optgroup>
+                    
+                    <optgroup label="Sağlık Bilimleri Fakültesi">
+                        <option value="Beslenme ve Diyetetik">Beslenme ve Diyetetik</option>
+                        <option value="Çocuk Gelişimi">Çocuk Gelişimi</option>
+                        <option value="Ebelik">Ebelik</option>
+                        <option value="Ergoterapi">Ergoterapi</option>
+                        <option value="Fizyoterapi ve Rehabilitasyon">Fizyoterapi ve Rehabilitasyon</option>
+                        <option value="Hemşirelik">Hemşirelik</option>
+                        <option value="Odyoloji">Odyoloji</option>
+                        <option value="Sağlık Yönetimi">Sağlık Yönetimi</option>
+                        <option value="Sosyal Hizmet">Sosyal Hizmet</option>
+                    </optgroup>
+                    
+                    <optgroup label="Spor Bilimleri Fakültesi">
+                        <option value="Antrenörlük Eğitimi">Antrenörlük Eğitimi</option>
+                        <option value="Egzersiz ve Spor Bilimleri">Egzersiz ve Spor Bilimleri</option>
+                        <option value="Spor Yöneticiliği">Spor Yöneticiliği</option>
+                        <option value="Rekreasyon">Rekreasyon</option>
+                    </optgroup>
+                    
+                    <optgroup label="Uygulamalı Bilimler Yüksekokulu">
+                        <option value="Yönetim Bilişim Sistemleri">Yönetim Bilişim Sistemleri</option>
+                        <option value="Gastronomi ve Mutfak Sanatları">Gastronomi ve Mutfak Sanatları</option>
+                    </optgroup>
+
+                    <optgroup label="Meslek Yüksekokulu">
+                        <option value="Adalet">Adalet</option>
+                        <option value="Aşçılık">Aşçılık</option>
+                        <option value="Bilgisayar Programcılığı">Bilgisayar Programcılığı</option>
+                        <option value="Bilişim Güvenliği Teknolojileri">Bilişim Güvenliği Teknolojileri</option>
+                        <option value="Dış Ticaret">Dış Ticaret</option>
+                        <option value="E-Ticaret ve Pazarlama">E-Ticaret ve Pazarlama</option>
+                        <option value="Grafik Tasarımı">Grafik Tasarımı</option>
+                        <option value="Halkla İlişkiler ve Tanıtım">Halkla İlişkiler ve Tanıtım</option>
+                        <option value="Harita ve Kadastro">Harita ve Kadastro</option>
+                        <option value="İç Mekan Tasarımı">İç Mekan Tasarımı</option>
+                        <option value="İnşaat Teknolojisi">İnşaat Teknolojisi</option>
+                        <option value="Lojistik">Lojistik</option>
+                        <option value="Mimari Restorasyon">Mimari Restorasyon</option>
+                        <option value="Mahkeme Büro Hizmetleri">Mahkeme Büro Hizmetleri</option>
+                        <option value="Moda ve Tekstil Tasarımı">Moda ve Tekstil Tasarımı</option>
+                        <option value="Otomotiv Teknolojisi">Otomotiv Teknolojisi</option>
+                        <option value="Radyo ve Televizyon Programcılığı">Radyo ve Televizyon Programcılığı</option>
+                        <option value="Sivil Havacılık ve Kabin Hizmetleri">Sivil Havacılık ve Kabin Hizmetleri</option>
+                        <option value="Sosyal Güvenlik">Sosyal Güvenlik</option>
+                        <option value="Sosyal Hizmetler">Sosyal Hizmetler</option>
+                        <option value="Spor Yönetimi">Spor Yönetimi</option>
+                        <option value="Uygulamalı İngilizce ve Çevirmenlik">Uygulamalı İngilizce ve Çevirmenlik</option>
+                        <option value="Web Tasarımı ve Kodlama">Web Tasarımı ve Kodlama</option>
+                    </optgroup>
+                    
+                    <optgroup label="Sağlık Hizmetleri Meslek Yüksekokulu">
+                        <option value="Acil Durum ve Afet Yönetimi">Acil Durum ve Afet Yönetimi</option>
+                        <option value="Ağız ve Diş Sağlığı">Ağız ve Diş Sağlığı</option>
+                        <option value="Ameliyathane Hizmetleri">Ameliyathane Hizmetleri</option>
+                        <option value="Anestezi">Anestezi</option>
+                        <option value="Diyaliz">Diyaliz</option>
+                        <option value="Diş Protezi Teknolojisi">Diş Protezi Teknolojisi</option>
+                        <option value="Elektronörofizyoloji">Elektronörofizyoloji</option>
+                        <option value="Eczane Hizmetleri">Eczane Hizmetleri</option>
+                        <option value="Fizyoterapi">Fizyoterapi</option>
+                        <option value="Çocuk Gelişimi">Çocuk Gelişimi</option>
+                        <option value="İlk ve Acil Yardım">İlk ve Acil Yardım</option>
+                        <option value="İş Sağlığı ve Güvenliği">İş Sağlığı ve Güvenliği</option>
+                        <option value="İş ve Uğraşı Terapisi">İş ve Uğraşı Terapisi</option>
+                        <option value="Odyometri">Odyometri</option>
+                        <option value="Optisyenlik">Optisyenlik</option>
+                        <option value="Ortopedik Protez ve Ortez">Ortopedik Protez ve Ortez</option>
+                        <option value="Patoloji Laboratuvar Teknikleri">Patoloji Laboratuvar Teknikleri</option>
+                        <option value="Radyoterapi">Radyoterapi</option>
+                        <option value="Sağlık Kurumları İşletmeciliği">Sağlık Kurumları İşletmeciliği</option>
+                        <option value="Tıbbi Görüntüleme Teknikleri">Tıbbi Görüntüleme Teknikleri</option>
+                        <option value="Tıbbi Laboratuvar Teknikleri">Tıbbi Laboratuvar Teknikleri</option>
+                    </optgroup>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn" style="width: 100%; margin-bottom: 1rem;">Kayıt Ol <i class="fas fa-check" style="margin-left: 10px;"></i></button>
+            
+            <p style="font-size: 0.9rem; margin-top: 1rem;">Zaten hesabınız var mı? <a href="{% url 'student_login' %}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Giriş Yapın</a></p>
+        </form>
+    </div>
+</div>
+{% endblock %}

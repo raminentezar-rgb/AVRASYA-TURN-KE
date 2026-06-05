@@ -233,6 +233,39 @@ def system_guide(request):
     """View to display the technical hardware integration guide."""
     return render(request, 'core/system_guide.html')
 
+def student_register(request):
+    if request.method == 'POST':
+        tc_no = request.POST.get('tc_no', '').strip()
+        student_no = request.POST.get('student_no', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        faculty = request.POST.get('faculty', '').strip()
+        department = request.POST.get('department', '').strip()
+
+        if not (tc_no and student_no and first_name and last_name and faculty and department):
+            messages.error(request, "Lütfen tüm alanları doldurun.")
+            return render(request, 'core/student_register.html')
+
+        if Student.objects.filter(tc_no=tc_no).exists() or Student.objects.filter(student_no=student_no).exists():
+            messages.error(request, "Bu T.C. Kimlik No veya Öğrenci No ile zaten kayıtlı bir öğrenci var.")
+            return render(request, 'core/student_register.html')
+
+        try:
+            Student.objects.create(
+                tc_no=tc_no,
+                student_no=student_no,
+                first_name=first_name,
+                last_name=last_name,
+                faculty=faculty,
+                department=department
+            )
+            messages.success(request, "Kayıt başarıyla oluşturuldu. Lütfen giriş yapın.")
+            return redirect('student_login')
+        except Exception as e:
+            messages.error(request, f"Kayıt sırasında bir hata oluştu: {str(e)}")
+
+    return render(request, 'core/student_register.html')
+
 def student_login(request):
     if request.method == 'POST':
         tc = request.POST.get('tc_no')
