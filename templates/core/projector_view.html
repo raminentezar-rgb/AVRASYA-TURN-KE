@@ -203,10 +203,12 @@
         const tokenUrl = `/teacher/api/projector/${sessionId}/token/`;
         const liveDataUrl = `/teacher/api/projector/${sessionId}/live/`;
         let targetHost = window.location.hostname;
+        let targetPort = window.location.port ? `:${window.location.port}` : '';
         if (targetHost === '127.0.0.1' || targetHost === 'localhost') {
             targetHost = '{{ server_lan_ip }}';
+            targetPort = window.location.port ? `:${window.location.port}` : ':8000';
         }
-        const scanBaseUrl = `${window.location.protocol}//${targetHost}:${window.location.port || '8000'}/attendance/scan/?session=${sessionId}&token=`;
+        const scanBaseUrl = `${window.location.protocol}//${targetHost}${targetPort}/attendance/scan/?session=${sessionId}&token=`;
         
         let qrcode = new QRCode(document.getElementById("qrCode"), {
             width: 350,
