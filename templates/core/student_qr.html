@@ -3,9 +3,40 @@
 {% block content %}
 <div class="animate-fade" style="max-width: 500px; margin: 2rem auto;">
     <div class="glass-card" style="text-align: center;">
-        <h2 style="margin-bottom: 0.5rem; font-weight: 700;">Giriş Kartınız</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">{{ student.first_name }} {{ student.last_name }}</p>
+        <h2 style="margin-bottom: 0.5rem; font-weight: 700;">Öğrenci Paneli</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">{{ student.first_name }} {{ student.last_name }} | IP: {{ student_ip }}</p>
         
+        {% if auto_checked_sessions %}
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4); text-align: left;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <i class="fas fa-wifi" style="font-size: 1.6rem;"></i>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">Otomatik Yoklama Alındı! ✅</h3>
+                    <p style="margin: 0; font-size: 0.85rem; opacity: 0.95;">Sınıf Wi-Fi ağında olduğunuz tespit edildi ve yoklamaya katılımınız otomatik kaydedildi.</p>
+                </div>
+            </div>
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.25);">
+                {% for s in auto_checked_sessions %}
+                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 4px;">
+                    <i class="fas fa-check-circle"></i> {{ s.section.course.name }} — {{ s.section.name }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); color: #1e40af; padding: 1rem; border-radius: 14px; margin-bottom: 1.5rem; font-size: 0.88rem; text-align: left;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div>
+                    <strong><i class="fas fa-wifi"></i> Otomatik Sınıf Yoklaması:</strong><br>
+                    Sınıftaki Wi-Fi ağına bağlıysanız sayfayı yenileyerek otomatik yoklama verebilirsiniz.
+                </div>
+                <a href="{% url 'student_qr' %}" style="background: #2563eb; color: white; padding: 0.5rem 0.9rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">
+                    <i class="fas fa-sync-alt"></i> Yoklamayı Kontrol Et
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
         <div style="background: white; padding: 20px; border-radius: 20px; display: inline-block; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <div id="qrcode"></div>
         </div>
@@ -87,7 +118,24 @@
         tick();
     }
 
+    async function checkAutoAttendance() {
+        try {
+            const response = await fetch('{% url "api_student_auto_checkin" %}');
+            const data = await response.json();
+            if (data.status && data.count > 0) {
+                // If checked in automatically and green card is not displayed yet, reload to show badge!
+                if (!document.querySelector('.fa-check-circle')) {
+                    window.location.reload();
+                }
+            }
+        } catch (e) {
+            console.error('Auto checkin poll error', e);
+        }
+    }
+
     // Initial load
     refreshQRCode();
+    checkAutoAttendance();
+    setInterval(checkAutoAttendance, 3000);
 </script>
 {% endblock %}

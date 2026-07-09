@@ -153,9 +153,25 @@
 <body>
 
     <div class="main-qr-area">
-        <a href="{% url 'close_attendance_session' session.id %}" class="btn-exit" style="background: #10b981; border: none; color: white;"><i class="fas fa-check-circle"></i> Yoklamayı Bitir & Rapor Al</a>
+        <div style="position: absolute; top: 2rem; left: 2rem; display: flex; gap: 0.75rem; align-items: center; z-index: 10; flex-wrap: wrap;">
+            <a href="{% url 'close_attendance_session' session.id %}" class="btn-exit" style="position: static; background: #10b981; border: none; color: white;"><i class="fas fa-check-circle"></i> Yoklamayı Bitir & Rapor Al</a>
+            
+            <button id="toggleIpBtn" onclick="toggleIpCheck()" style="cursor: pointer; background: {% if session.require_ip_check %}rgba(16, 185, 129, 0.15){% else %}rgba(239, 68, 68, 0.15){% endif %}; border: 1px solid {% if session.require_ip_check %}#10b981{% else %}#ef4444{% endif %}; color: {% if session.require_ip_check %}#dcfce7{% else %}#fee2e2{% endif %}; padding: 0.5rem 1rem; border-radius: 8px; font-family: inherit; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <i class="fas fa-wifi" id="ipIcon" style="color: {% if session.require_ip_check %}#10b981{% else %}#ef4444{% endif %};"></i>
+                <span id="ipText">Wi-Fi IP Otomatik Yoklama: {% if session.require_ip_check %}AKTİF{% else %}KAPALI{% endif %}</span>
+            </button>
+
+            <button id="toggleQrBtn" onclick="toggleQrCheck()" style="cursor: pointer; background: {% if session.allow_qr_check %}rgba(59, 130, 246, 0.15){% else %}rgba(239, 68, 68, 0.15){% endif %}; border: 1px solid {% if session.allow_qr_check %}#3b82f6{% else %}#ef4444{% endif %}; color: {% if session.allow_qr_check %}#dbeafe{% else %}#fee2e2{% endif %}; padding: 0.5rem 1rem; border-radius: 8px; font-family: inherit; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <i class="fas fa-qrcode" id="qrIcon" style="color: {% if session.allow_qr_check %}#3b82f6{% else %}#ef4444{% endif %};"></i>
+                <span id="qrText">QR Kod ile Yoklama: {% if session.allow_qr_check %}AKTİF{% else %}KAPALI{% endif %}</span>
+            </button>
+        </div>
         
-        <h1 style="margin-bottom: 2rem; font-size: 2.5rem; text-align: center;">Kameranızı Okutarak <br><span style="color:#3b82f6;">Yoklamaya Katılın</span></h1>
+        <h1 style="margin-bottom: 1rem; margin-top: 2rem; font-size: 2.5rem; text-align: center;">Kameranızı Okutarak <br><span style="color:#3b82f6;">Yoklamaya Katılın</span></h1>
+        
+        <div style="margin-bottom: 1.5rem; font-size: 0.95rem; color: #94a3b8; background: rgba(59, 130, 246, 0.1); padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(59, 130, 246, 0.3);">
+            <i class="fas fa-wifi" style="color: #3b82f6; margin-right: 6px;"></i> Sınıf Wi-Fi Ağ IP Adresi: <strong style="color: #f8fafc;">{{ session.teacher_ip|default:"Otomatik Tanımlandı" }}</strong>
+        </div>
         
         <div class="qr-container" id="qrContainer">
             <div id="qrCode" class="qr-placeholder"></div>
@@ -186,7 +202,11 @@
         const sessionId = {{ session.id }};
         const tokenUrl = `/teacher/api/projector/${sessionId}/token/`;
         const liveDataUrl = `/teacher/api/projector/${sessionId}/live/`;
-        const scanBaseUrl = window.location.origin + `/attendance/scan/?session=${sessionId}&token=`;
+        let targetHost = window.location.hostname;
+        if (targetHost === '127.0.0.1' || targetHost === 'localhost') {
+            targetHost = '{{ server_lan_ip }}';
+        }
+        const scanBaseUrl = `${window.location.protocol}//${targetHost}:${window.location.port || '8000'}/attendance/scan/?session=${sessionId}&token=`;
         
         let qrcode = new QRCode(document.getElementById("qrCode"), {
             width: 350,
@@ -237,19 +257,67 @@
                     
                     if (data.count > 0) {
                         document.getElementById('emptyState').style.display = 'none';
-                        // Rebuild list (for simplicity in production, you might diff this via React/Vue, but vanilla JS is fine here)
                         listContainer.innerHTML = '';
                         data.records.forEach(record => {
                             listContainer.innerHTML += `
                                 <div class="student-item">
                                     <div>
                                         <div class="student-name">${record.student_name}</div>
-                                        <div style="color: #94a3b8; font-size: 0.8rem;">${record.student_no}</div>
+                                        <div style="color: #94a3b8; font-size: 0.8rem;">${record.student_no} ${record.ip ? '• IP: ' + record.ip : ''}</div>
                                     </div>
                                     <div class="student-time"><i class="fas fa-check-circle"></i> ${record.time}</div>
                                 </div>
                             `;
                         });
+                    }
+                });
+        }
+
+        function toggleIpCheck() {
+            fetch('{% url "toggle_ip_check" session.id %}')
+                .then(r => r.json())
+                .then(data => {
+                    const btn = document.getElementById('toggleIpBtn');
+                    const text = document.getElementById('ipText');
+                    const icon = document.getElementById('ipIcon');
+                    if (data.require_ip_check) {
+                        btn.style.background = 'rgba(16, 185, 129, 0.15)';
+                        btn.style.borderColor = '#10b981';
+                        btn.style.color = '#dcfce7';
+                        icon.style.color = '#10b981';
+                        text.innerText = 'Wi-Fi IP Otomatik Yoklama: AKTİF';
+                    } else {
+                        btn.style.background = 'rgba(239, 68, 68, 0.15)';
+                        btn.style.borderColor = '#ef4444';
+                        btn.style.color = '#fee2e2';
+                        icon.style.color = '#ef4444';
+                        text.innerText = 'Wi-Fi IP Otomatik Yoklama: KAPALI';
+                    }
+                });
+        }
+
+        function toggleQrCheck() {
+            fetch('{% url "toggle_qr_check" session.id %}')
+                .then(r => r.json())
+                .then(data => {
+                    const btn = document.getElementById('toggleQrBtn');
+                    const text = document.getElementById('qrText');
+                    const icon = document.getElementById('qrIcon');
+                    const qrBox = document.getElementById('qrContainer');
+                    if (data.allow_qr_check) {
+                        btn.style.background = 'rgba(59, 130, 246, 0.15)';
+                        btn.style.borderColor = '#3b82f6';
+                        btn.style.color = '#dbeafe';
+                        icon.style.color = '#3b82f6';
+                        text.innerText = 'QR Kod ile Yoklama: AKTİF';
+                        qrBox.style.opacity = '1';
+                    } else {
+                        btn.style.background = 'rgba(239, 68, 68, 0.15)';
+                        btn.style.borderColor = '#ef4444';
+                        btn.style.color = '#fee2e2';
+                        icon.style.color = '#ef4444';
+                        text.innerText = 'QR Kod ile Yoklama: KAPALI';
+                        qrBox.style.opacity = '0.25';
                     }
                 });
         }

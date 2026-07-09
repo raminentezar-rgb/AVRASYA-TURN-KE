@@ -3,7 +3,8 @@ from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Student, AccessLog, Teacher, CourseSection, AttendanceSession, AttendanceRecord
+from .models import Student, AccessLog, Teacher, CourseSection, AttendanceSession, AttendanceRecord, ProlizConfig
+from .proliz_service import ProlizService
 import pyotp
 import json
 import logging
@@ -296,9 +297,26 @@ def student_qr(request):
         return redirect('student_login')
     
     student = get_object_or_404(Student, id=student_id)
+    student_ip = get_client_ip(request)
+    if student_ip in ('127.0.0.1', '::1', 'localhost'):
+        student_ip = get_local_lan_ip()
+        
+    auto_checked_sessions = []
+    active_sessions = AttendanceSession.objects.filter(is_active=True)
     
+    for session in active_sessions:
+        if is_ip_allowed(session.teacher_ip, student_ip):
+            record, created = AttendanceRecord.objects.get_or_create(
+                session=session,
+                student=student,
+                defaults={'client_ip': student_ip, 'status': 'present'}
+            )
+            auto_checked_sessions.append(session)
+            
     context = {
         'student': student,
+        'auto_checked_sessions': auto_checked_sessions,
+        'student_ip': student_ip,
     }
     return render(request, 'core/student_qr.html', context)
 
@@ -318,6 +336,42 @@ def get_live_token(request):
         'token': totp.now(),
         'student_no': student.student_no,
         'expires_in': int(time_remaining)
+    })
+
+def api_student_auto_checkin(request):
+    student_id = request.session.get('student_id')
+    if not student_id:
+        return JsonResponse({'status': False, 'error': 'Not logged in'}, status=401)
+    
+    try:
+        student = Student.objects.get(id=student_id)
+    except Student.DoesNotExist:
+        return JsonResponse({'status': False, 'error': 'Student not found'}, status=404)
+        
+    student_ip = get_client_ip(request)
+    if student_ip in ('127.0.0.1', '::1', 'localhost'):
+        student_ip = get_local_lan_ip()
+        
+    checked_in = []
+    active_sessions = AttendanceSession.objects.filter(is_active=True)
+    for session in active_sessions:
+        if session.require_ip_check and is_ip_allowed(session.teacher_ip, student_ip):
+            record, created = AttendanceRecord.objects.get_or_create(
+                session=session,
+                student=student,
+                defaults={'client_ip': student_ip, 'status': 'present'}
+            )
+            checked_in.append({
+                'course': session.section.course.name,
+                'section': session.section.name,
+                'created': created
+            })
+            
+    return JsonResponse({
+        'status': True,
+        'student_ip': student_ip,
+        'checked_in': checked_in,
+        'count': len(checked_in)
     })
 
 @csrf_exempt
@@ -378,6 +432,29 @@ def teacher_dashboard(request):
     context = {'teacher': teacher, 'sections': sections}
     return render(request, 'core/teacher_dashboard.html', context)
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR', '')
+    return ip
+
+def is_ip_allowed(session_ip, student_ip):
+    if not session_ip or not student_ip:
+        return True
+    if session_ip == student_ip:
+        return True
+    if session_ip in ('127.0.0.1', '::1', 'localhost') and student_ip in ('127.0.0.1', '::1', 'localhost'):
+        return True
+    t_parts = session_ip.split('.')
+    s_parts = student_ip.split('.')
+    if len(t_parts) == 4 and len(s_parts) == 4:
+        # Same /24 subnet (e.g. university classroom Wi-Fi 192.168.1.X or 10.X.X.X)
+        if t_parts[:3] == s_parts[:3]:
+            return True
+    return False
+
 @login_required
 def start_attendance_session(request, section_id):
     section = get_object_or_404(CourseSection, id=section_id, teacher__user=request.user)
@@ -385,15 +462,48 @@ def start_attendance_session(request, section_id):
     # Optional: Close previous loose active sessions for this section
     AttendanceSession.objects.filter(section=section, is_active=True).update(is_active=False)
     
-    session = AttendanceSession.objects.create(section=section)
+    teacher_ip = get_client_ip(request)
+    if teacher_ip in ('127.0.0.1', '::1', 'localhost'):
+        teacher_ip = get_local_lan_ip()
+        
+    session = AttendanceSession.objects.create(
+        section=section,
+        teacher_ip=teacher_ip,
+        require_ip_check=True
+    )
     return redirect('projector_view', session_id=session.id)
+
+@login_required
+def toggle_ip_check(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    session.require_ip_check = not session.require_ip_check
+    session.save()
+    return JsonResponse({'status': True, 'require_ip_check': session.require_ip_check})
+
+@login_required
+def toggle_qr_check(request, session_id):
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    session.allow_qr_check = not session.allow_qr_check
+    session.save()
+    return JsonResponse({'status': True, 'allow_qr_check': session.allow_qr_check})
+
+import socket
+
+def get_local_lan_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return '127.0.0.1'
 
 @login_required
 def projector_view(request, session_id):
     session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
-    
-    # We will pass the initial token, but it will be refreshed via AJAX
-    context = {'session': session}
+    server_lan_ip = get_local_lan_ip()
+    context = {'session': session, 'server_lan_ip': server_lan_ip}
     return render(request, 'core/projector_view.html', context)
 
 @login_required
@@ -415,7 +525,8 @@ def api_projector_live(request, session_id):
         data.append({
             'student_name': f"{r.student.first_name} {r.student.last_name}",
             'student_no': r.student.student_no,
-            'time': timezone.localtime(r.timestamp).strftime('%H:%M:%S')
+            'time': timezone.localtime(r.timestamp).strftime('%H:%M:%S'),
+            'ip': r.client_ip or '-'
         })
     return JsonResponse({'records': data, 'count': records.count()})
 
@@ -446,12 +557,27 @@ def student_scan(request):
         messages.error(request, 'Bu derse kayıtlı değilsiniz.')
         return render(request, 'core/scan_result.html', {'success': False})
         
+    if not session.allow_qr_check:
+        messages.error(request, 'Bu oturumda QR Kod ile yoklama kapalıdır. Lütfen Sınıf Wi-Fi Ağına bağlanarak otomatik yoklama verin.')
+        return render(request, 'core/scan_result.html', {'success': False})
+
     if not session.verify_totp(token):
         messages.error(request, 'QR kodun süresi dolmuş. Lütfen tahtadaki yeni kodu okutun.')
         return render(request, 'core/scan_result.html', {'success': False})
+
+    # IP Based Verification
+    student_ip = get_client_ip(request)
+    if session.require_ip_check and session.teacher_ip:
+        if not is_ip_allowed(session.teacher_ip, student_ip):
+            messages.error(request, 'IP Koruması: Bu yoklamaya sadece sınıf içi Wi-Fi ağından (Aynı IP/Ağ) katılabilirsiniz! Lütfen VPN kapatıp sınıf Wi-Fi ağına bağlanın.')
+            return render(request, 'core/scan_result.html', {'success': False})
         
     # Record Checkin
-    record, created = AttendanceRecord.objects.get_or_create(session=session, student=student)
+    record, created = AttendanceRecord.objects.get_or_create(
+        session=session,
+        student=student,
+        defaults={'client_ip': student_ip}
+    )
     if not created:
         messages.info(request, 'Yoklamanız zaten alınmıştı.')
     else:
@@ -478,6 +604,9 @@ def close_attendance_session(request, session_id):
     session.is_active = False
     session.save()
     
+    # Automatically push attendance list to Proliz OBS
+    proliz_result = ProlizService.submit_session_attendance(session)
+    
     present_ids = session.records.values_list('student_id', flat=True)
     enrolled = session.section.students.all()
     absent_count = enrolled.count() - len(present_ids)
@@ -487,8 +616,20 @@ def close_attendance_session(request, session_id):
         'present_count': len(present_ids),
         'absent_count': absent_count,
         'total_count': enrolled.count(),
+        'proliz_result': proliz_result,
     }
     return render(request, 'core/attendance_summary.html', context)
+
+@login_required
+def sync_session_to_proliz(request, session_id):
+    """Manual trigger to re-push attendance session to Proliz OBS."""
+    session = get_object_or_404(AttendanceSession, id=session_id, section__teacher__user=request.user)
+    proliz_result = ProlizService.submit_session_attendance(session)
+    if proliz_result.get('status'):
+        messages.success(request, f"Proliz OBS Aktarımı Başarılı: {proliz_result.get('message')}")
+    else:
+        messages.error(request, f"Proliz OBS Aktarım Hatası: {proliz_result.get('message')}")
+    return redirect('close_attendance_session', session_id=session.id)
 
 @login_required
 def export_attendance_report(request, session_id, export_format='excel'):
@@ -649,3 +790,34 @@ def teacher_stats(request):
         'chart_data': json.dumps(chart_data),
     }
     return render(request, 'core/teacher_stats.html', context)
+
+@login_required
+@staff_member_required
+def proliz_settings(request):
+    config = ProlizConfig.objects.first()
+    if not config:
+        config = ProlizConfig.objects.create(
+            username="",
+            password="",
+            is_active=False
+        )
+
+    if request.method == 'POST':
+        config.api_url = request.POST.get('api_url', config.api_url)
+        config.username = request.POST.get('username', '')
+        config.password = request.POST.get('password', '')
+        config.is_active = request.POST.get('is_active') == 'on'
+        config.save()
+        messages.success(request, 'Proliz API ayarları başarıyla kaydedildi.')
+        return redirect('proliz_settings')
+
+    return render(request, 'core/proliz_settings.html', {'config': config})
+
+@login_required
+@staff_member_required
+def proliz_sync(request):
+    if request.method == 'POST':
+        result = ProlizService.sync_students()
+        return JsonResponse(result)
+    return JsonResponse({"status": False, "message": "Geçersiz İstek"})
+

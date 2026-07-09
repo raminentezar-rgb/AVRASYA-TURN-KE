@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 800px; margin: 2rem auto;">
+    <h1 style="margin-bottom: 2rem; font-weight: 700;">Proliz OBS Entegrasyonu</h1>
+    
+    <div class="glass-card">
+        <h2 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--text);">API Ayarları</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">
+            Üniversitenin Proliz Öğrenci Bilgi Sistemi'ne bağlanarak öğrencileri otomatik olarak senkronize etmek için aşağıdaki bilgileri doldurun.
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div style="background: #dcfce7; color: #166534; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'proliz_settings' %}">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Proliz API URL</label>
+                <input type="url" name="api_url" value="{{ config.api_url }}" required style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Kullanıcı Adı (userName)</label>
+                <input type="text" name="username" value="{{ config.username }}" required style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Şifre (userPass)</label>
+                <input type="password" name="password" value="{{ config.password }}" required style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.5); font-family: inherit;">
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="is_active" {% if config.is_active %}checked{% endif %} style="width: 18px; height: 18px;">
+                    <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Entegrasyon Aktif</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn" style="background: var(--primary); color: white; border: none; width: 100%;">
+                Ayarları Kaydet <i class="fas fa-save" style="margin-left: 8px;"></i>
+            </button>
+        </form>
+    </div>
+
+    <div class="glass-card" style="margin-top: 2rem;">
+        <h2 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--text);">Senkronizasyon</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Son Senkronizasyon: 
+            {% if config.last_sync %}
+                <strong>{{ config.last_sync|date:"d M Y H:i" }}</strong>
+            {% else %}
+                <span style="color: #ef4444;">Hiç senkronize edilmedi</span>
+            {% endif %}
+        </p>
+
+        <button id="syncBtn" class="btn" style="background: #10b981; color: white; border: none;" {% if not config.is_active %}disabled{% endif %} onclick="startSync()">
+            Öğrencileri Şimdi Senkronize Et <i class="fas fa-sync" style="margin-left: 8px;"></i>
+        </button>
+        
+        <div id="syncResult" style="margin-top: 1.5rem; display: none; padding: 1rem; border-radius: 12px; font-size: 0.9rem;"></div>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'dashboard' %}" class="btn" style="background: var(--secondary); color: white;"><i class="fas fa-arrow-left"></i> Geri Dön</a>
+    </div>
+</div>
+
+<script>
+function startSync() {
+    const btn = document.getElementById('syncBtn');
+    const resultDiv = document.getElementById('syncResult');
+    
+    btn.disabled = true;
+    btn.innerHTML = 'Senkronize Ediliyor... <i class="fas fa-spinner fa-spin" style="margin-left: 8px;"></i>';
+    resultDiv.style.display = 'none';
+
+    fetch("{% url 'proliz_sync' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        resultDiv.style.display = 'block';
+        if (data.status) {
+            resultDiv.style.background = '#dcfce7';
+            resultDiv.style.color = '#166534';
+            resultDiv.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>' + data.message;
+            // Optionally reload page after 2 seconds to update last_sync time
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.color = '#991b1b';
+            resultDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>' + data.message;
+            btn.disabled = false;
+            btn.innerHTML = 'Öğrencileri Şimdi Senkronize Et <i class="fas fa-sync" style="margin-left: 8px;"></i>';
+        }
+    })
+    .catch(err => {
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = '#fee2e2';
+        resultDiv.style.color = '#991b1b';
+        resultDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Bağlantı hatası oluştu.';
+        btn.disabled = false;
+        btn.innerHTML = 'Öğrencileri Şimdi Senkronize Et <i class="fas fa-sync" style="margin-left: 8px;"></i>';
+    });
+}
+</script>
+{% endblock %}

@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from .models import Student, AccessLog, Teacher, Course, CourseSection, AttendanceSession, AttendanceRecord
+from .models import Student, AccessLog, Teacher, Course, CourseSection, AttendanceSession, AttendanceRecord, ProlizConfig
+
+@admin.register(ProlizConfig)
+class ProlizConfigAdmin(admin.ModelAdmin):
+    list_display = ('api_url', 'username', 'is_active', 'last_sync')
+    list_filter = ('is_active',)
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):

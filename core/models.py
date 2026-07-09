@@ -90,6 +90,9 @@ class AttendanceSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, verbose_name="Aktif mi?")
     secret_key = models.CharField(max_length=32, default=pyotp.random_base32)
+    teacher_ip = models.CharField(max_length=50, blank=True, null=True, verbose_name="Öğretmen / Sınıf IP Adresi")
+    require_ip_check = models.BooleanField(default=True, verbose_name="Wi-Fi IP Otomatik Yoklama")
+    allow_qr_check = models.BooleanField(default=True, verbose_name="QR Kod ile Yoklamaya İzin Ver")
 
     class Meta:
         verbose_name = "Yoklama Oturumu"
@@ -114,6 +117,7 @@ class AttendanceRecord(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendance_records')
     timestamp = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default='present')
+    client_ip = models.CharField(max_length=50, blank=True, null=True, verbose_name="Öğrenci IP Adresi")
 
     class Meta:
         unique_together = ('session', 'student')
@@ -122,3 +126,17 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.student.first_name} {self.student.last_name} - {self.session.created_at.strftime('%Y-%m-%d')}"
+
+class ProlizConfig(models.Model):
+    api_url = models.URLField(max_length=255, verbose_name="Proliz API URL", default="https://obs.avrasya.edu.tr/ProlizMaliRestApi/api/")
+    username = models.CharField(max_length=100, verbose_name="Kullanıcı Adı")
+    password = models.CharField(max_length=100, verbose_name="Şifre")
+    is_active = models.BooleanField(default=False, verbose_name="Aktif mi?")
+    last_sync = models.DateTimeField(blank=True, null=True, verbose_name="Son Senkronizasyon")
+
+    class Meta:
+        verbose_name = "Proliz API Ayarları"
+        verbose_name_plural = "Proliz API Ayarları"
+
+    def __str__(self):
+        return "Proliz OBS Entegrasyonu"
